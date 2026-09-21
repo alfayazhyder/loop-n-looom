@@ -5,6 +5,7 @@ import helmet from "helmet";
 
 import { env } from "./config/env";
 import authRouter from "./routes/auth.routes";
+import customerProfileRouter from "./routes/customerProfile.routes";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/customer", customerProfileRouter);
 
 app.listen(env.PORT, () => {
   console.log(

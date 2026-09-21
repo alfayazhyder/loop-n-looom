@@ -49,3 +49,29 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationInput = z.infer<
   typeof resendVerificationSchema
 >;
+export const updateProfileSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .optional(),
+
+  lastName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .optional(),
+
+  phone: z
+    .string()
+    .trim()
+    .min(7)
+    .max(20)
+    .optional(),
+});
+
+export type UpdateProfileInput = z.infer<
+  typeof updateProfileSchema
+>;
