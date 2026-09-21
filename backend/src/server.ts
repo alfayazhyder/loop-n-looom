@@ -1,8 +1,24 @@
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+
+import { env } from "./config/env";
+import authRouter from "./routes/auth.routes";
 
 const app = express();
 
-const PORT = 5000;
+app.use(helmet());
+
+app.use(
+  cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+app.use(cookieParser());
 
 app.get("/", (_req, res) => {
   res.json({
@@ -10,6 +26,10 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`LOOP_N_LOOOM backend running on http://localhost:${PORT}`);
+app.use("/api/auth", authRouter);
+
+app.listen(env.PORT, () => {
+  console.log(
+    `LOOP_N_LOOOM backend running on http://localhost:${env.PORT}`,
+  );
 });
