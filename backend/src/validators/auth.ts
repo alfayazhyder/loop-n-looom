@@ -43,12 +43,6 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required").optional(),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
-export type ResendVerificationInput = z.infer<
-  typeof resendVerificationSchema
->;
 export const updateProfileSchema = z.object({
   firstName: z
     .string()
@@ -72,6 +66,113 @@ export const updateProfileSchema = z.object({
     .optional(),
 });
 
+const addressTypeSchema = z.enum([
+  "HOME",
+  "WORK",
+  "OTHER",
+]);
+
+const emirateSchema = z.enum([
+  "ABU_DHABI",
+  "DUBAI",
+  "SHARJAH",
+  "AJMAN",
+  "UMM_AL_QUWAIN",
+  "RAS_AL_KHAIMAH",
+  "FUJAIRAH",
+]);
+
+export const createAddressSchema = z.object({
+  type: addressTypeSchema.default("HOME"),
+
+  recipientName: z
+    .string()
+    .trim()
+    .min(1, "Recipient name is required")
+    .max(100),
+
+  phone: z
+    .string()
+    .trim()
+    .min(7)
+    .max(20),
+
+  emirate: emirateSchema,
+
+  city: z
+    .string()
+    .trim()
+    .min(1, "City is required")
+    .max(80),
+
+  area: z
+    .string()
+    .trim()
+    .min(1, "Area is required")
+    .max(120),
+
+  street: z
+    .string()
+    .trim()
+    .max(200)
+    .optional(),
+
+  building: z
+    .string()
+    .trim()
+    .max(120)
+    .optional(),
+
+  apartmentOrVilla: z
+    .string()
+    .trim()
+    .max(120)
+    .optional(),
+
+  landmark: z
+    .string()
+    .trim()
+    .max(200)
+    .optional(),
+
+  deliveryInstructions: z
+    .string()
+    .trim()
+    .max(500)
+    .optional(),
+
+  isDefault: z
+    .boolean()
+    .optional(),
+});
+
+export const updateAddressSchema =
+  createAddressSchema.partial();
+
+export type RegisterInput = z.infer<
+  typeof registerSchema
+>;
+
+export type LoginInput = z.infer<
+  typeof loginSchema
+>;
+
+export type VerifyEmailInput = z.infer<
+  typeof verifyEmailSchema
+>;
+
+export type ResendVerificationInput = z.infer<
+  typeof resendVerificationSchema
+>;
+
 export type UpdateProfileInput = z.infer<
   typeof updateProfileSchema
+>;
+
+export type CreateAddressInput = z.infer<
+  typeof createAddressSchema
+>;
+
+export type UpdateAddressInput = z.infer<
+  typeof updateAddressSchema
 >;
