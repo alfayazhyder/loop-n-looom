@@ -7,6 +7,7 @@ import { env } from "./config/env";
 import authRouter from "./routes/auth.routes";
 import customerAddressRouter from "./routes/customerAddress.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
+import productCatalogRouter from "./routes/productCatalog.routes";
 
 const app = express();
 
@@ -35,6 +36,11 @@ app.use("/api/customer", customerProfileRouter);
 app.use(
   "/api/customer/addresses",
   customerAddressRouter,
+);
+
+app.use(
+  "/api/products",
+  productCatalogRouter,
 );
 
 app.listen(env.PORT, () => {
