@@ -5,6 +5,7 @@ import helmet from "helmet";
 
 import { env } from "./config/env";
 import authRouter from "./routes/auth.routes";
+import catalogTaxonomyRouter from "./routes/catalogTaxonomy.routes";
 import customerAddressRouter from "./routes/customerAddress.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
@@ -41,6 +42,11 @@ app.use(
 app.use(
   "/api/products",
   productCatalogRouter,
+);
+
+app.use(
+  "/api/catalog",
+  catalogTaxonomyRouter,
 );
 
 app.listen(env.PORT, () => {
