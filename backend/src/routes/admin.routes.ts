@@ -1,16 +1,51 @@
 import { Router } from "express";
 
 import { checkAdminAccess } from "../controllers/adminAccess.controller";
+import {
+  archiveProduct,
+  createProduct,
+  getAdminProduct,
+  listAdminProducts,
+  updateProduct,
+} from "../controllers/adminProduct.controller";
 import { requireAdmin } from "../middleware/admin.middleware";
 import { requireAuth } from "../middleware/auth.middleware";
 
 const adminRouter = Router();
 
-adminRouter.get(
-  "/access-check",
+adminRouter.use(
   requireAuth,
   requireAdmin,
+);
+
+adminRouter.get(
+  "/access-check",
   checkAdminAccess,
+);
+
+adminRouter.get(
+  "/products",
+  listAdminProducts,
+);
+
+adminRouter.get(
+  "/products/:productId",
+  getAdminProduct,
+);
+
+adminRouter.post(
+  "/products",
+  createProduct,
+);
+
+adminRouter.put(
+  "/products/:productId",
+  updateProduct,
+);
+
+adminRouter.patch(
+  "/products/:productId/archive",
+  archiveProduct,
 );
 
 export default adminRouter;
