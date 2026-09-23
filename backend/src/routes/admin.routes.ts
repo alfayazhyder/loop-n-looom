@@ -8,6 +8,13 @@ import {
   listAdminProducts,
   updateProduct,
 } from "../controllers/adminProduct.controller";
+import {
+  adjustAdminInventory,
+  createAdminVariant,
+  listAdminInventoryHistory,
+  listAdminVariants,
+  updateAdminVariant,
+} from "../controllers/adminVariant.controller";
 import { requireAdmin } from "../middleware/admin.middleware";
 import { requireAuth } from "../middleware/auth.middleware";
 
@@ -46,6 +53,31 @@ adminRouter.put(
 adminRouter.patch(
   "/products/:productId/archive",
   archiveProduct,
+);
+
+adminRouter.get(
+  "/products/:productId/variants",
+  listAdminVariants,
+);
+
+adminRouter.post(
+  "/products/:productId/variants",
+  createAdminVariant,
+);
+
+adminRouter.put(
+  "/products/:productId/variants/:variantId",
+  updateAdminVariant,
+);
+
+adminRouter.post(
+  "/products/:productId/variants/:variantId/inventory",
+  adjustAdminInventory,
+);
+
+adminRouter.get(
+  "/products/:productId/variants/:variantId/inventory",
+  listAdminInventoryHistory,
 );
 
 export default adminRouter;
