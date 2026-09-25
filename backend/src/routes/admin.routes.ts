@@ -2,6 +2,15 @@ import { Router } from "express";
 
 import { checkAdminAccess } from "../controllers/adminAccess.controller";
 import {
+  assignCustomRequestAdmin,
+  createCustomRequestAdminMessage,
+  createCustomRequestQuote,
+  getAdminCustomRequest,
+  listAdminCustomRequests,
+  sendCustomRequestQuote,
+  updateCustomRequestStatus,
+} from "../controllers/adminCustomRequest.controller";
+import {
   archiveProduct,
   createProduct,
   getAdminProduct,
@@ -78,6 +87,41 @@ adminRouter.post(
 adminRouter.get(
   "/products/:productId/variants/:variantId/inventory",
   listAdminInventoryHistory,
+);
+
+adminRouter.get(
+  "/custom-requests",
+  listAdminCustomRequests,
+);
+
+adminRouter.get(
+  "/custom-requests/:requestId",
+  getAdminCustomRequest,
+);
+
+adminRouter.patch(
+  "/custom-requests/:requestId/assign",
+  assignCustomRequestAdmin,
+);
+
+adminRouter.patch(
+  "/custom-requests/:requestId/status",
+  updateCustomRequestStatus,
+);
+
+adminRouter.post(
+  "/custom-requests/:requestId/messages",
+  createCustomRequestAdminMessage,
+);
+
+adminRouter.post(
+  "/custom-requests/:requestId/quotes",
+  createCustomRequestQuote,
+);
+
+adminRouter.post(
+  "/custom-requests/:requestId/quotes/:quoteId/send",
+  sendCustomRequestQuote,
 );
 
 export default adminRouter;
