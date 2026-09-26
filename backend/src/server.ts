@@ -8,6 +8,7 @@ import adminRouter from "./routes/admin.routes";
 import authRouter from "./routes/auth.routes";
 import catalogTaxonomyRouter from "./routes/catalogTaxonomy.routes";
 import customerAddressRouter from "./routes/customerAddress.routes";
+import customerCustomRequestRouter from "./routes/customerCustomRequest.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
 
@@ -38,6 +39,11 @@ app.use("/api/customer", customerProfileRouter);
 app.use(
   "/api/customer/addresses",
   customerAddressRouter,
+);
+
+app.use(
+  "/api/customer/custom-requests",
+  customerCustomRequestRouter,
 );
 
 app.use(
