@@ -9,6 +9,7 @@ import authRouter from "./routes/auth.routes";
 import catalogTaxonomyRouter from "./routes/catalogTaxonomy.routes";
 import customerAddressRouter from "./routes/customerAddress.routes";
 import customerCartRouter from "./routes/customerCart.routes";
+import customerCheckoutRouter from "./routes/customerCheckout.routes";
 import customerCustomRequestRouter from "./routes/customerCustomRequest.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
@@ -24,18 +25,33 @@ app.use(
   }),
 );
 
-app.use(express.json());
-app.use(cookieParser());
+app.use(
+  express.json(),
+);
 
-app.get("/", (_req, res) => {
-  res.json({
-    message: "LOOP_N_LOOOM backend is running",
-  });
-});
+app.use(
+  cookieParser(),
+);
 
-app.use("/api/auth", authRouter);
+app.get(
+  "/",
+  (_req, res) => {
+    res.json({
+      message:
+        "LOOP_N_LOOOM backend is running",
+    });
+  },
+);
 
-app.use("/api/customer", customerProfileRouter);
+app.use(
+  "/api/auth",
+  authRouter,
+);
+
+app.use(
+  "/api/customer",
+  customerProfileRouter,
+);
 
 app.use(
   "/api/customer/addresses",
@@ -53,6 +69,11 @@ app.use(
 );
 
 app.use(
+  "/api/checkout",
+  customerCheckoutRouter,
+);
+
+app.use(
   "/api/products",
   productCatalogRouter,
 );
@@ -67,8 +88,11 @@ app.use(
   adminRouter,
 );
 
-app.listen(env.PORT, () => {
-  console.log(
-    `LOOP_N_LOOOM backend running on http://localhost:${env.PORT}`,
-  );
-});
+app.listen(
+  env.PORT,
+  () => {
+    console.log(
+      `LOOP_N_LOOOM backend running on http://localhost:${env.PORT}`,
+    );
+  },
+);
