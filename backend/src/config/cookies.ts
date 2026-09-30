@@ -7,7 +7,11 @@ export const AUTH_COOKIE_NAMES = {
   refreshToken: "lnl_refresh_token",
 } as const;
 
-const isProduction = env.NODE_ENV === "production";
+export const CART_COOKIE_NAME =
+  "lnl_cart_token";
+
+const isProduction =
+  env.NODE_ENV === "production";
 
 const baseCookieOptions: CookieOptions = {
   httpOnly: true,
@@ -27,5 +31,14 @@ export const refreshTokenCookieOptions: CookieOptions = {
 };
 
 export const clearAuthCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+};
+
+export const cartCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+};
+
+export const clearCartCookieOptions: CookieOptions = {
   ...baseCookieOptions,
 };
