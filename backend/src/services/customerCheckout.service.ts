@@ -2325,6 +2325,87 @@ export async function placeCustomerOrder(
         );
 
         if (
+          isFullyPaid
+        ) {
+          const paidReadyStockItems =
+            await transaction.orderItem.findMany(
+              {
+                where: {
+                  orderId:
+                    order.id,
+
+                  fulfillmentType:
+                    "READY_STOCK",
+
+                  variantId: {
+                    not: null,
+                  },
+                },
+
+                select: {
+                  id: true,
+                  variantId: true,
+                },
+              },
+            );
+
+          for (
+            const paidItem of
+            paidReadyStockItems
+          ) {
+            if (
+              !paidItem.variantId
+            ) {
+              continue;
+            }
+
+            await transaction.inventoryMovement.create(
+              {
+                data: {
+                  variantId:
+                    paidItem.variantId,
+
+                  orderItemId:
+                    paidItem.id,
+
+                  type:
+                    "ORDER_FULFILLED",
+
+                  /*
+                   * Checkout already decremented
+                   * READY_STOCK when it created the
+                   * ORDER_RESERVED movement.
+                   * Quantity zero records that the
+                   * reservation became fulfilled
+                   * without reducing stock twice.
+                   */
+                  quantity: 0,
+
+                  reason:
+                    `Store-credit payment completed for order ${orderNumber}`,
+                },
+              },
+            );
+          }
+
+          await transaction.shipment.create(
+            {
+              data: {
+                orderId:
+                  order.id,
+
+                status:
+                  "PENDING",
+
+                estimatedDeliveryAt:
+                  state
+                    .estimatedDeliveryAt,
+              },
+            },
+          );
+        }
+
+        if (
           totalCents > 0
         ) {
           await transaction.payment.create(
@@ -2352,7 +2433,6 @@ export async function placeCustomerOrder(
         }
 
         if (
-          isFullyPaid &&
           currentCoupon
         ) {
           await transaction.couponRedemption.create(

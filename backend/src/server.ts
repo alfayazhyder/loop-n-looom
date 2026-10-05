@@ -1,4 +1,4 @@
-import cookieParser from "cookie-parser";
+﻿import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -11,17 +11,23 @@ import customerAddressRouter from "./routes/customerAddress.routes";
 import customerCartRouter from "./routes/customerCart.routes";
 import customerCheckoutRouter from "./routes/customerCheckout.routes";
 import customerCustomRequestRouter from "./routes/customerCustomRequest.routes";
+import customerPaymentRouter from "./routes/customerPayment.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet(),
+);
 
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
-    credentials: true,
+    origin:
+      env.FRONTEND_URL,
+
+    credentials:
+      true,
   }),
 );
 
@@ -71,6 +77,11 @@ app.use(
 app.use(
   "/api/checkout",
   customerCheckoutRouter,
+);
+
+app.use(
+  "/api/payments",
+  customerPaymentRouter,
 );
 
 app.use(
