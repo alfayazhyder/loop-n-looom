@@ -11,6 +11,9 @@ import customerAddressRouter from "./routes/customerAddress.routes";
 import customerCartRouter from "./routes/customerCart.routes";
 import customerCheckoutRouter from "./routes/customerCheckout.routes";
 import customerCustomRequestRouter from "./routes/customerCustomRequest.routes";
+import customerOrderRouter, {
+  publicOrderTrackingRouter,
+} from "./routes/customerOrder.routes";
 import customerPaymentRouter from "./routes/customerPayment.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
@@ -70,6 +73,11 @@ app.use(
 );
 
 app.use(
+  "/api/customer/orders",
+  customerOrderRouter,
+);
+
+app.use(
   "/api/cart",
   customerCartRouter,
 );
@@ -82,6 +90,11 @@ app.use(
 app.use(
   "/api/payments",
   customerPaymentRouter,
+);
+
+app.use(
+  "/api/orders",
+  publicOrderTrackingRouter,
 );
 
 app.use(
