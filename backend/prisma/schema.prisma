@@ -1,5 +1,5 @@
 // =========================================================
-// LOOP_N_LOOOM — PostgreSQL Database Schema
+// LOOP_N_LOOOM Ã¢â‚¬â€ PostgreSQL Database Schema
 // =========================================================
 
 generator client {
@@ -1088,6 +1088,7 @@ model Notification {
   providerMessageId String?
   errorMessage      String?
   sentAt            DateTime?
+  readAt            DateTime?
   createdAt         DateTime           @default(now())
 
   user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -1096,6 +1097,8 @@ model Notification {
   @@index([userId])
   @@index([orderId])
   @@index([status])
+  @@index([readAt])
+
   @@index([createdAt])
   @@map("notifications")
 }
