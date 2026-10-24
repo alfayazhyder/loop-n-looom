@@ -1,4 +1,4 @@
-﻿import cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -20,6 +20,8 @@ import customerReviewRouter, {
   publicProductReviewRouter,
 } from "./routes/customerReview.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
+
+import customerWishlistRouter from "./routes/customerWishlist.routes";
 
 const app = express();
 
@@ -78,6 +80,11 @@ app.use(
 app.use(
   "/api/customer/orders",
   customerOrderRouter,
+);
+
+app.use(
+  "/api/customer/wishlist",
+  customerWishlistRouter,
 );
 
 app.use(
