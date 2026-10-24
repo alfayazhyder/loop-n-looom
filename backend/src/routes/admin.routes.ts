@@ -1,4 +1,16 @@
 import {
+  listCouponsAdmin,
+  getCouponAdmin,
+  createCouponAdmin,
+  updateCouponAdmin,
+  listSubscribersAdmin,
+  unsubscribeAdmin,
+  analyticsOverviewAdmin,
+  ordersReportAdmin,
+  productsReportAdmin,
+  couponsReportAdmin,
+} from "../controllers/adminMarketing.controller";
+import {
   getCustomerAdmin,
   getReviewAdmin,
   listCustomersAdmin,
@@ -230,5 +242,54 @@ adminRouter.get(
 adminRouter.patch(
   "/reviews/:reviewId/moderation",
   moderateReviewAdmin,
+);
+adminRouter.get(
+  "/coupons",
+  listCouponsAdmin,
+);
+
+adminRouter.post(
+  "/coupons",
+  createCouponAdmin,
+);
+
+adminRouter.get(
+  "/coupons/:couponId",
+  getCouponAdmin,
+);
+
+adminRouter.patch(
+  "/coupons/:couponId",
+  updateCouponAdmin,
+);
+
+adminRouter.get(
+  "/newsletter-subscribers",
+  listSubscribersAdmin,
+);
+
+adminRouter.patch(
+  "/newsletter-subscribers/:subscriberId/unsubscribe",
+  unsubscribeAdmin,
+);
+
+adminRouter.get(
+  "/analytics/overview",
+  analyticsOverviewAdmin,
+);
+
+adminRouter.get(
+  "/reports/orders",
+  ordersReportAdmin,
+);
+
+adminRouter.get(
+  "/reports/products",
+  productsReportAdmin,
+);
+
+adminRouter.get(
+  "/reports/coupons",
+  couponsReportAdmin,
 );
 export default adminRouter;
