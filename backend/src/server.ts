@@ -23,6 +23,9 @@ import productCatalogRouter from "./routes/productCatalog.routes";
 
 import customerWishlistRouter from "./routes/customerWishlist.routes";
 
+import customerReminderRouter from "./routes/customerReminder.routes";
+import customerNotificationRouter from "./routes/customerNotification.routes";
+
 const app = express();
 
 app.use(
@@ -80,6 +83,16 @@ app.use(
 app.use(
   "/api/customer/orders",
   customerOrderRouter,
+);
+
+app.use(
+  "/api/customer/reminders",
+  customerReminderRouter,
+);
+
+app.use(
+  "/api/customer/notifications",
+  customerNotificationRouter,
 );
 
 app.use(
