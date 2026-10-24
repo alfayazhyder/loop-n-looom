@@ -1,3 +1,4 @@
+import { rateLimit } from "express-rate-limit";
 import {
   listCouponsAdmin,
   getCouponAdmin,
@@ -67,6 +68,27 @@ const adminRouter = Router();
 adminRouter.use(
   requireAuth,
   requireAdmin,
+);
+const adminApiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 240,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    message:
+      "Too many admin requests. Please try again later.",
+  },
+});
+
+adminRouter.use(
+  adminApiRateLimiter,
+);
+
+adminRouter.use(
+  (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  },
 );
 
 adminRouter.get(

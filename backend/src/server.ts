@@ -4,6 +4,7 @@ import express from "express";
 import helmet from "helmet";
 
 import { env } from "./config/env";
+import { enforceRequestSecurity } from "./middleware/requestSecurity.middleware";
 import adminRouter from "./routes/admin.routes";
 import authRouter from "./routes/auth.routes";
 import catalogTaxonomyRouter from "./routes/catalogTaxonomy.routes";
@@ -44,6 +45,9 @@ app.use(
   }),
 );
 
+app.use(
+  enforceRequestSecurity,
+);
 app.use(
   express.json(),
 );
