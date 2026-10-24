@@ -2,6 +2,14 @@ import { Router } from "express";
 
 import { checkAdminAccess } from "../controllers/adminAccess.controller";
 import {
+  addOrderQcPhotosAdmin,
+  deleteOrderQcPhotoAdmin,
+  getOrderAdmin,
+  listOrdersAdmin,
+  updateOrderShipmentAdmin,
+  updateOrderStatusAdmin,
+} from "../controllers/adminOrder.controller";
+import {
   assignAdminSupport,
   getAdminSupport,
   listAdminSupport,
@@ -155,5 +163,35 @@ adminRouter.patch(
 adminRouter.post(
   "/support-conversations/:conversationId/messages",
   sendAdminSupportMessage,
+);
+
+adminRouter.get(
+  "/orders",
+  listOrdersAdmin,
+);
+
+adminRouter.get(
+  "/orders/:orderId",
+  getOrderAdmin,
+);
+
+adminRouter.patch(
+  "/orders/:orderId/status",
+  updateOrderStatusAdmin,
+);
+
+adminRouter.post(
+  "/orders/:orderId/qc-photos",
+  addOrderQcPhotosAdmin,
+);
+
+adminRouter.delete(
+  "/orders/:orderId/qc-photos/:mediaId",
+  deleteOrderQcPhotoAdmin,
+);
+
+adminRouter.put(
+  "/orders/:orderId/shipment",
+  updateOrderShipmentAdmin,
 );
 export default adminRouter;
