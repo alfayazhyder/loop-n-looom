@@ -16,6 +16,9 @@ import customerOrderRouter, {
 } from "./routes/customerOrder.routes";
 import customerPaymentRouter from "./routes/customerPayment.routes";
 import customerProfileRouter from "./routes/customerProfile.routes";
+import customerReviewRouter, {
+  publicProductReviewRouter,
+} from "./routes/customerReview.routes";
 import productCatalogRouter from "./routes/productCatalog.routes";
 
 const app = express();
@@ -78,6 +81,11 @@ app.use(
 );
 
 app.use(
+  "/api/customer/reviews",
+  customerReviewRouter,
+);
+
+app.use(
   "/api/cart",
   customerCartRouter,
 );
@@ -95,6 +103,11 @@ app.use(
 app.use(
   "/api/orders",
   publicOrderTrackingRouter,
+);
+
+app.use(
+  "/api/products",
+  publicProductReviewRouter,
 );
 
 app.use(
