@@ -1,3 +1,11 @@
+import {
+  getCustomerAdmin,
+  getReviewAdmin,
+  listCustomersAdmin,
+  listReviewsAdmin,
+  moderateReviewAdmin,
+  updateCustomerStatusAdmin,
+} from "../controllers/adminCustomerReview.controller";
 import { Router } from "express";
 
 import { checkAdminAccess } from "../controllers/adminAccess.controller";
@@ -193,5 +201,34 @@ adminRouter.delete(
 adminRouter.put(
   "/orders/:orderId/shipment",
   updateOrderShipmentAdmin,
+);
+adminRouter.get(
+  "/customers",
+  listCustomersAdmin,
+);
+
+adminRouter.get(
+  "/customers/:customerId",
+  getCustomerAdmin,
+);
+
+adminRouter.patch(
+  "/customers/:customerId/status",
+  updateCustomerStatusAdmin,
+);
+
+adminRouter.get(
+  "/reviews",
+  listReviewsAdmin,
+);
+
+adminRouter.get(
+  "/reviews/:reviewId",
+  getReviewAdmin,
+);
+
+adminRouter.patch(
+  "/reviews/:reviewId/moderation",
+  moderateReviewAdmin,
 );
 export default adminRouter;
