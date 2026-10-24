@@ -2,6 +2,13 @@ import { Router } from "express";
 
 import { checkAdminAccess } from "../controllers/adminAccess.controller";
 import {
+  assignAdminSupport,
+  getAdminSupport,
+  listAdminSupport,
+  sendAdminSupportMessage,
+  updateAdminSupportStatus,
+} from "../controllers/adminSupport.controller";
+import {
   assignCustomRequestAdmin,
   createCustomRequestAdminMessage,
   createCustomRequestQuote,
@@ -124,4 +131,29 @@ adminRouter.post(
   sendCustomRequestQuote,
 );
 
+
+adminRouter.get(
+  "/support-conversations",
+  listAdminSupport,
+);
+
+adminRouter.get(
+  "/support-conversations/:conversationId",
+  getAdminSupport,
+);
+
+adminRouter.patch(
+  "/support-conversations/:conversationId/assign",
+  assignAdminSupport,
+);
+
+adminRouter.patch(
+  "/support-conversations/:conversationId/status",
+  updateAdminSupportStatus,
+);
+
+adminRouter.post(
+  "/support-conversations/:conversationId/messages",
+  sendAdminSupportMessage,
+);
 export default adminRouter;
