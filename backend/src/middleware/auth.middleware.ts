@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   NextFunction,
   Request,
   Response,
@@ -7,104 +7,225 @@ import type {
 import {
   AUTH_COOKIE_NAMES,
 } from "../config/cookies";
+
+import { prisma } from "../lib/prisma";
 import { verifyAccessToken } from "../utils/tokens";
 
-export type AuthenticatedRequest = Request & {
-  user?: {
-    id: string;
-    role: string;
+export type AuthenticatedRequest =
+  Request & {
+    user?: {
+      id: string;
+      role: string;
+    };
   };
-};
 
-function getAuthenticatedUser(
+function getAccessToken(
   req: AuthenticatedRequest,
+): string | null {
+  const token =
+    req.cookies?.[
+      AUTH_COOKIE_NAMES
+        .accessToken
+    ];
+
+  return typeof token ===
+    "string"
+    ? token
+    : null;
+}
+
+function parseAccessToken(
+  token: string,
 ):
   | {
       id: string;
       role: string;
     }
   | null {
-  const token =
-    req.cookies[AUTH_COOKIE_NAMES.accessToken];
-
-  if (!token) {
-    return null;
-  }
-
   try {
-    const payload = verifyAccessToken(token);
+    const payload =
+      verifyAccessToken(
+        token,
+      );
 
     if (
-      !payload.sub ||
-      typeof payload.role !== "string"
+      typeof payload.sub !==
+        "string" ||
+      typeof payload.role !==
+        "string"
     ) {
       return null;
     }
 
     return {
-      id: payload.sub,
-      role: payload.role,
+      id:
+        payload.sub,
+
+      role:
+        payload.role,
     };
   } catch {
     return null;
   }
 }
 
-export function optionalAuth(
+export async function optionalAuth(
   req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction,
-): void {
-  const user = getAuthenticatedUser(req);
+): Promise<void> {
+  const token =
+    getAccessToken(
+      req,
+    );
 
-  if (user) {
-    req.user = user;
+  if (!token) {
+    next();
+
+    return;
   }
 
-  next();
+  const payload =
+    parseAccessToken(
+      token,
+    );
+
+  if (!payload) {
+    next();
+
+    return;
+  }
+
+  try {
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id:
+            payload.id,
+        },
+
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          emailVerifiedAt:
+            true,
+        },
+      });
+
+    if (
+      user &&
+      user.status ===
+        "ACTIVE" &&
+      user.emailVerifiedAt
+    ) {
+      req.user = {
+        id:
+          user.id,
+
+        role:
+          user.role,
+      };
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
-export function requireAuth(
+export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   const token =
-    req.cookies[AUTH_COOKIE_NAMES.accessToken];
+    getAccessToken(
+      req,
+    );
 
   if (!token) {
     res.status(401).json({
-      message: "Authentication required.",
+      message:
+        "Authentication required.",
+    });
+
+    return;
+  }
+
+  const payload =
+    parseAccessToken(
+      token,
+    );
+
+  if (!payload) {
+    res.status(401).json({
+      message:
+        "Invalid or expired authentication token.",
     });
 
     return;
   }
 
   try {
-    const payload = verifyAccessToken(token);
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id:
+            payload.id,
+        },
 
-    if (
-      !payload.sub ||
-      typeof payload.role !== "string"
-    ) {
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          emailVerifiedAt:
+            true,
+        },
+      });
+
+    if (!user) {
       res.status(401).json({
         message:
-          "Invalid authentication token.",
+          "Authentication session is no longer valid.",
+      });
+
+      return;
+    }
+
+    if (
+      user.status !==
+      "ACTIVE"
+    ) {
+      res.status(403).json({
+        message:
+          "This account is currently unavailable.",
+      });
+
+      return;
+    }
+
+    if (
+      !user.emailVerifiedAt
+    ) {
+      res.status(403).json({
+        message:
+          "Email verification is required.",
       });
 
       return;
     }
 
     req.user = {
-      id: payload.sub,
-      role: payload.role,
+      id:
+        user.id,
+
+      role:
+        user.role,
     };
 
     next();
-  } catch {
-    res.status(401).json({
-      message:
-        "Invalid or expired authentication token.",
-    });
+  } catch (error) {
+    next(error);
   }
 }
