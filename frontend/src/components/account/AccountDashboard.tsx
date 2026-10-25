@@ -219,6 +219,11 @@ export default function AccountDashboard() {
             </p>
           </Link>
 
+          <Link href="/orders" className="rounded-3xl border border-[#EADFD8] bg-white p-7 transition-transform hover:-translate-y-1">
+            <ShoppingBag size={27} strokeWidth={1.5} />
+            <h2 className="mt-6 font-serif text-xl">My Orders</h2>
+            <p className="mt-3 text-sm text-[#6B5A50]">View orders, shipping updates, and quality-check photos.</p>
+          </Link>
           <Link
             href="/cart"
             className="rounded-3xl border border-[#EADFD8] bg-white p-7 transition-transform hover:-translate-y-1"
