@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Heart, Search, ShoppingBag, User, Bell, CalendarHeart } from "lucide-react";
+import { Heart, Search, ShoppingBag, User, Bell, CalendarHeart, MessageCircle } from "lucide-react";
 
 import Logo from "@/components/Logo";
 import MobileMenu from "@/components/layout/MobileMenu";
@@ -70,6 +70,13 @@ export default function CustomerHeader() {
             className="transition-opacity hover:opacity-60"
           >
             <Bell size={20} strokeWidth={1.8} />
+          </Link>
+          <Link
+            href="/support"
+            aria-label="Customer support"
+            className="transition-opacity hover:opacity-60"
+          >
+            <MessageCircle size={20} strokeWidth={1.8} />
           </Link>
           <Link
             href="/reminders"
