@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useState,
+  type FormEvent,
+} from "react";
 
 import ProductCard from "@/components/ui/ProductCard";
-
 import { apiRequest } from "@/lib/api";
 
 import {
@@ -15,279 +18,282 @@ interface Props {
   category?: string;
 }
 
-type Status = "loading" | "ready" | "error";
+interface CatalogResponse {
+  products: unknown[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export default function CatalogGrid({
   category,
 }: Props) {
-  const [products, setProducts] = useState<
-    CatalogProduct[]
-  >([]);
+  const [products, setProducts] =
+    useState<CatalogProduct[]>([]);
 
-  const [status, setStatus] =
-    useState<Status>("loading");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [availability, setAvailability] = useState("");
+  const [sort, setSort] = useState("newest");
 
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const [query, setQuery] =
-    useState("");
-
-  const [availability, setAvailability] =
-    useState("all");
-
-  const [sort, setSort] =
-    useState("newest");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
+      setLoading(true);
+      setError("");
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "24",
+        sort,
+      });
+
+      if (category) {
+        params.set("category", category);
+      }
+
+      if (search) {
+        params.set("search", search);
+      }
+
+      if (availability) {
+        params.set("fulfillmentType", availability);
+      }
+
       try {
         const response =
-          await apiRequest<unknown>(
-            "/api/products",
-            {
-              signal: controller.signal,
-            },
+          await apiRequest<CatalogResponse>(
+            `/api/products?${params.toString()}`,
+            { signal: controller.signal },
           );
 
         if (controller.signal.aborted) return;
 
-        setProducts(normalizeCatalog(response));
-        setStatus("ready");
+        const incoming = normalizeCatalog(response);
 
-      } catch (error) {
+        setProducts((previous) => {
+          if (page === 1) return incoming;
+
+          const existing = new Set(
+            previous.map((product) => product.id),
+          );
+
+          return [
+            ...previous,
+            ...incoming.filter(
+              (product) => !existing.has(product.id),
+            ),
+          ];
+        });
+
+        setTotal(response.pagination.total);
+        setTotalPages(response.pagination.totalPages);
+      } catch (caught) {
         if (controller.signal.aborted) return;
 
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
+        setError(
+          caught instanceof Error
+            ? caught.message
             : "Unable to load products.",
         );
-
-        setStatus("error");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
     void load();
 
     return () => controller.abort();
-  }, []);
+  }, [category, search, availability, sort, page]);
 
-  const visibleProducts = useMemo(() => {
-    const search =
-      query.trim().toLowerCase();
+  function resetFilters() {
+    setProducts([]);
+    setPage(1);
+  }
 
-    const filtered = products.filter(
-      (product) => {
-        if (category) {
-          const requested =
-            category.toLowerCase();
-
-          const matchingCategory =
-            product.categorySlug.toLowerCase() ===
-              requested ||
-            product.categoryName
-              .toLowerCase()
-              .replaceAll(" ", "-") === requested;
-
-          if (!matchingCategory) {
-            return false;
-          }
-        }
-
-        if (
-          availability !== "all" &&
-          product.availability !== availability
-        ) {
-          return false;
-        }
-
-        if (search) {
-          const searchable = [
-            product.name,
-            product.description,
-            product.categoryName,
-          ]
-            .join(" ")
-            .toLowerCase();
-
-          if (!searchable.includes(search)) {
-            return false;
-          }
-        }
-
-        return true;
-      },
-    );
-
-    return [...filtered].sort((a, b) => {
-      if (sort === "price-low") {
-        return a.price - b.price;
-      }
-
-      if (sort === "price-high") {
-        return b.price - a.price;
-      }
-
-      if (sort === "name") {
-        return a.name.localeCompare(b.name);
-      }
-
-      return b.createdAt.localeCompare(a.createdAt);
-    });
-
-  }, [products, category, query, availability, sort]);
+  function submitSearch(event: FormEvent) {
+    event.preventDefault();
+    resetFilters();
+    setSearch(searchInput.trim().slice(0, 120));
+  }
 
   const heading = category
     ? category
         .split("-")
         .map(
-          (part) =>
-            part.charAt(0).toUpperCase() +
-            part.slice(1),
+          (word) =>
+            word.charAt(0).toUpperCase() +
+            word.slice(1),
         )
         .join(" ")
     : "Explore our creations";
 
   return (
-    <section className="bg-brand-cream py-12 sm:py-16">
+    <section className="min-h-[70vh] bg-brand-cream py-12 sm:py-16">
       <div className="page-container">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#8A7B72]">
           Thoughtfully handmade
         </p>
 
-        <h1 className="font-serif text-4xl text-brand-cocoa sm:text-5xl">
+        <h1 className="font-serif text-4xl sm:text-5xl">
           {heading}
         </h1>
 
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-[#6B5A50] sm:text-base">
-          Discover handmade crochet creations, personalised
-          gifts and meaningful pieces made with care.
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-[#6B5A50]">
+          Discover thoughtful crochet creations and
+          personalised gifts, handmade with care.
         </p>
 
-        <div className="mt-10 grid gap-4 rounded-3xl border border-[#EADFD8] bg-white p-5 md:grid-cols-3">
-          <label className="flex flex-col gap-2 text-sm text-brand-cocoa">
+        <form
+          onSubmit={submitSearch}
+          className="mt-10 grid gap-4 rounded-3xl border border-[#EADFD8] bg-white p-5 md:grid-cols-[1.4fr_1fr_1fr_auto]"
+        >
+          <label className="flex flex-col gap-2 text-sm">
             Search creations
             <input
-              value={query}
+              value={searchInput}
               onChange={(event) =>
-                setQuery(event.target.value)
+                setSearchInput(event.target.value)
               }
-              placeholder="Search products..."
-              className="min-h-12 rounded-2xl border border-[#EADFD8] bg-brand-cream px-4 outline-none focus:border-brand-cocoa"
+              maxLength={120}
+              placeholder="Search handmade gifts"
+              className="min-h-12 rounded-2xl border border-[#EADFD8] px-4"
             />
           </label>
 
-          <label className="flex flex-col gap-2 text-sm text-brand-cocoa">
+          <label className="flex flex-col gap-2 text-sm">
             Availability
             <select
               value={availability}
-              onChange={(event) =>
-                setAvailability(event.target.value)
-              }
-              className="min-h-12 rounded-2xl border border-[#EADFD8] bg-brand-cream px-4"
+              onChange={(event) => {
+                resetFilters();
+                setAvailability(event.target.value);
+              }}
+              className="min-h-12 rounded-2xl border border-[#EADFD8] px-4"
             >
-              <option value="all">All products</option>
-              <option value="Ready Stock">
+              <option value="">All creations</option>
+              <option value="READY_STOCK">
                 Ready stock
               </option>
-              <option value="Made to Order">
+              <option value="MADE_TO_ORDER">
                 Made to order
               </option>
             </select>
           </label>
 
-          <label className="flex flex-col gap-2 text-sm text-brand-cocoa">
-            Sort products
+          <label className="flex flex-col gap-2 text-sm">
+            Sort by
             <select
               value={sort}
-              onChange={(event) =>
-                setSort(event.target.value)
-              }
-              className="min-h-12 rounded-2xl border border-[#EADFD8] bg-brand-cream px-4"
+              onChange={(event) => {
+                resetFilters();
+                setSort(event.target.value);
+              }}
+              className="min-h-12 rounded-2xl border border-[#EADFD8] px-4"
             >
-              <option value="newest">Newest first</option>
-              <option value="price-low">
+              <option value="newest">
+                Newest first
+              </option>
+              <option value="price_asc">
                 Price: low to high
               </option>
-              <option value="price-high">
+              <option value="price_desc">
                 Price: high to low
               </option>
-              <option value="name">
+              <option value="name_asc">
                 Name: A to Z
               </option>
             </select>
           </label>
-        </div>
 
-        {status === "loading" && (
-          <div
-            role="status"
-            className="mt-10 rounded-3xl border border-[#EADFD8] bg-white p-10 text-center text-[#6B5A50]"
+          <button
+            type="submit"
+            className="min-h-12 self-end rounded-full bg-brand-cocoa px-6 text-sm font-medium text-white"
           >
-            Loading handmade creations...
-          </div>
-        )}
+            Search
+          </button>
+        </form>
 
-        {status === "error" && (
+        <p className="my-8 text-sm text-[#6B5A50]">
+          {loading && page === 1
+            ? "Loading creations..."
+            : `${total} creations found`}
+        </p>
+
+        {error && (
           <div
             role="alert"
-            className="mt-10 rounded-3xl border border-[#EADFD8] bg-white p-10 text-center"
+            className="mb-8 rounded-3xl border border-[#EADFD8] bg-white p-6 text-sm text-[#A95757]"
           >
-            <h2 className="font-serif text-2xl">
-              We couldn&apos;t load the collection
-            </h2>
-
-            <p className="mt-3 text-sm text-[#6B5A50]">
-              {errorMessage}
-            </p>
+            {error}
           </div>
         )}
 
-        {status === "ready" && (
-          <>
-            <p className="my-8 text-sm text-[#6B5A50]">
-              {visibleProducts.length} creations found
-            </p>
+        {products.length > 0 && (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                productId={product.id}
+                name={product.name}
+                href={`/products/${encodeURIComponent(product.slug)}`}
+                price={product.price}
+                imageUrl={product.media[0]?.url}
+                availability={product.availability}
+                badge={
+                  product.isNewArrival
+                    ? "NEW"
+                    : product.isFeatured
+                      ? "FEATURED"
+                      : undefined
+                }
+                badgeVariant="blush"
+              />
+            ))}
+          </div>
+        )}
 
-            {visibleProducts.length === 0 ? (
-              <div className="rounded-3xl border border-[#EADFD8] bg-white p-10 text-center">
-                <h2 className="font-serif text-2xl">
-                  No matching creations yet
-                </h2>
+        {!loading &&
+          !error &&
+          products.length === 0 && (
+            <div className="rounded-3xl border border-[#EADFD8] bg-white p-10 text-center">
+              <h2 className="text-2xl">
+                No matching creations yet
+              </h2>
+              <p className="mt-3 text-sm text-[#6B5A50]">
+                Try a different search or filter.
+              </p>
+            </div>
+          )}
 
-                <p className="mt-3 text-sm text-[#6B5A50]">
-                  Try a different search or filter.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                {visibleProducts.map((product) => (
-                  <ProductCard
-                    key={product.slug}
-                    name={product.name}
-                    href={`/products/${encodeURIComponent(product.slug)}`}
-                    price={product.price}
-                    availability={product.availability}
-                    badge={
-                      product.isNewArrival
-                        ? "NEW"
-                        : product.isFeatured
-                          ? "FEATURED"
-                          : undefined
-                    }
-                    badgeVariant={
-                      product.isNewArrival
-                        ? "success"
-                        : "blush"
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </>
+        {page < totalPages && (
+          <div className="mt-12 text-center">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() =>
+                setPage((current) => current + 1)
+              }
+              className="min-h-12 rounded-full bg-brand-cocoa px-8 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {loading
+                ? "Loading..."
+                : "Load more creations"}
+            </button>
+          </div>
         )}
       </div>
     </section>

@@ -1,67 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Heart, ShoppingBag } from "lucide-react";
 
-import { apiRequest, ApiError } from "@/lib/api";
+import { apiJson, apiRequest, ApiError } from "@/lib/api";
 
 import {
   normalizeProduct,
   type CatalogProduct,
 } from "@/lib/catalog";
 
-interface Props {
-  slug: string;
-}
-
 export default function ProductDetail({
   slug,
-}: Props) {
+}: {
+  slug: string;
+}) {
+  const router = useRouter();
+
   const [product, setProduct] =
     useState<CatalogProduct | null>(null);
 
-  const [status, setStatus] =
-    useState<"loading" | "ready" | "error">(
-      "loading",
-    );
-
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [quantity, setQuantity] = useState(1);
+
+  const [variantId, setVariantId] = useState("");
+  const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
+      setLoading(true);
+
       try {
-        const result =
-          await apiRequest<unknown>(
-            `/api/products/${encodeURIComponent(slug)}`,
-            {
-              signal: controller.signal,
-            },
-          );
+        const result = await apiRequest<unknown>(
+          `/api/products/${encodeURIComponent(slug)}`,
+          {
+            signal: controller.signal,
+          },
+        );
 
         if (controller.signal.aborted) return;
 
-        setProduct(normalizeProduct(result));
-        setStatus("ready");
+        const next = normalizeProduct(result);
 
+        setProduct(next);
+        setVariantId(next?.variants[0]?.id ?? "");
+        setImageIndex(0);
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        if (
-          error instanceof ApiError &&
-          error.status === 404
-        ) {
-          setMessage("This creation was not found.");
-        } else {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : "Unable to load this creation.",
-          );
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to load product.",
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
         }
-
-        setStatus("error");
       }
     }
 
@@ -70,94 +71,294 @@ export default function ProductDetail({
     return () => controller.abort();
   }, [slug]);
 
+  const variant = product?.variants.find(
+    (item) => item.id === variantId,
+  );
+
+  const price =
+    variant?.price ?? product?.price ?? 0;
+
+  const soldOut =
+    product?.fulfillmentType === "READY_STOCK" &&
+    (
+      product.variants.length === 0 ||
+      !variant ||
+      variant.stockQuantity < 1
+    );
+
+  const maxQuantity =
+    product?.fulfillmentType === "READY_STOCK" &&
+    variant
+      ? Math.max(1, Math.min(20, variant.stockQuantity))
+      : 20;
+
+  async function addToCart() {
+    if (!product || busy || soldOut) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiJson(
+        "/api/cart/items",
+        "POST",
+        {
+          productId: product.id,
+          ...(variantId ? { variantId } : {}),
+          quantity,
+        },
+      );
+
+      router.push("/cart");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not add product to cart.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveToWishlist() {
+    if (!product || busy) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiJson(
+        `/api/customer/wishlist/${encodeURIComponent(product.id)}`,
+        "POST",
+      );
+
+      setMessage("Added to your wishlist.");
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.status === 401
+      ) {
+        setMessage(
+          "Please sign in to save this product.",
+        );
+      } else if (
+        error instanceof ApiError &&
+        error.status === 409
+      ) {
+        setMessage(
+          "This product is already in your wishlist.",
+        );
+      } else {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to save product.",
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="bg-brand-cream py-12 sm:py-20">
       <div className="page-container">
         <Link
           href="/shop"
-          className="text-sm text-[#6B5A50] underline-offset-4 hover:underline"
+          className="text-sm text-[#6B5A50] hover:underline"
         >
           ← Back to shop
         </Link>
 
-        {status === "loading" && (
+        {loading && (
           <p role="status" className="mt-12">
-            Loading product details...
+            Loading this creation...
           </p>
         )}
 
-        {status === "error" && (
-          <div role="alert" className="mt-12 rounded-3xl bg-white p-10">
-            <h1 className="font-serif text-3xl">
+        {!loading && !product && (
+          <div className="mt-10 rounded-3xl bg-white p-10">
+            <h1 className="text-3xl">
               Product unavailable
             </h1>
-            <p className="mt-4 text-[#6B5A50]">
-              {message}
-            </p>
+            <p className="mt-4">{message}</p>
           </div>
         )}
 
-        {status === "ready" && !product && (
-          <div className="mt-12 rounded-3xl bg-white p-10">
-            <h1 className="font-serif text-3xl">
-              Product unavailable
-            </h1>
-          </div>
-        )}
-
-        {status === "ready" && product && (
+        {!loading && product && (
           <div className="mt-10 grid items-start gap-10 lg:grid-cols-2">
-            <div className="flex aspect-[4/5] items-center justify-center rounded-[2.5rem] border border-[#EADFD8] bg-[#F8F2EC] p-10">
-              <div className="flex h-full w-full items-center justify-center rounded-[2rem] bg-white/70 p-10 text-center">
-                <span className="font-serif text-3xl text-[#8A7B72]">
-                  {product.name}
-                </span>
+            <div>
+              <div className="aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-[#EADFD8] bg-[#F8F2EC]">
+                {product.media[imageIndex] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={product.media[imageIndex].url}
+                    alt={product.media[imageIndex].alt}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center p-10 text-center">
+                    <span className="font-serif text-3xl text-[#8A7B72]">
+                      {product.name}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {product.media.length > 1 && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {product.media.map((image, index) => (
+                    <button
+                      key={image.id || index}
+                      type="button"
+                      onClick={() => setImageIndex(index)}
+                      aria-label={`View image ${index + 1}`}
+                      aria-pressed={imageIndex === index}
+                      className={`h-20 w-20 overflow-hidden rounded-2xl border-2 ${
+                        imageIndex === index
+                          ? "border-brand-cocoa"
+                          : "border-[#EADFD8]"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="rounded-[2.5rem] border border-[#EADFD8] bg-white p-7 sm:p-10">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8A7B72]">
                 {product.categoryName ||
-                  "Handmade with love"}
+                  "Handmade creation"}
               </p>
 
-              <h1 className="mt-4 font-serif text-4xl leading-tight text-brand-cocoa">
+              <h1 className="mt-4 font-serif text-4xl leading-tight">
                 {product.name}
               </h1>
 
-              <p className="mt-6 text-2xl font-medium text-brand-cocoa">
-                AED {product.price.toFixed(2)}
+              <p className="mt-6 text-2xl font-semibold">
+                AED {price.toFixed(2)}
               </p>
 
-              <p className="mt-6 inline-flex rounded-full bg-brand-blush px-5 py-3 text-sm text-brand-cocoa">
+              <p className="mt-5 inline-flex rounded-full bg-brand-blush px-5 py-3 text-sm">
                 {product.availability}
               </p>
 
-              <p className="mt-8 whitespace-pre-line text-sm leading-8 text-[#6B5A50]">
+              <p className="mt-7 whitespace-pre-line text-sm leading-8 text-[#6B5A50]">
                 {product.description ||
-                  "Thoughtfully handmade for the moments that matter."}
+                  "Thoughtfully handmade for special moments."}
               </p>
 
-              <div className="mt-10 rounded-3xl bg-brand-cream p-6">
-                <h2 className="font-serif text-xl">
-                  Made with care
-                </h2>
+              {product.productionMinDays !== null &&
+                product.productionMaxDays !== null && (
+                  <p className="mt-5 rounded-2xl bg-brand-cream p-4 text-sm">
+                    Production time:{" "}
+                    {product.productionMinDays}–
+                    {product.productionMaxDays} days
+                  </p>
+                )}
 
-                <p className="mt-3 text-sm leading-7 text-[#6B5A50]">
-                  Every creation is prepared with
-                  attention to detail. Shopping cart,
-                  customisation and checkout actions
-                  will be connected in the next
-                  storefront integration batch.
-                </p>
-              </div>
+              {product.variants.length > 0 && (
+                <label className="mt-8 block text-sm font-medium">
+                  Choose your variation
+                  <select
+                    value={variantId}
+                    onChange={(event) => {
+                      setVariantId(event.target.value);
+                      setQuantity(1);
+                    }}
+                    className="mt-3 min-h-12 w-full rounded-2xl border border-[#EADFD8] bg-brand-cream px-4"
+                  >
+                    {product.variants.map((item) => (
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        disabled={
+                          product.fulfillmentType ===
+                            "READY_STOCK" &&
+                          item.stockQuantity < 1
+                        }
+                      >
+                        {item.name}
+                        {item.price !== null
+                          ? ` — AED ${item.price.toFixed(2)}`
+                          : ""}
+                        {product.fulfillmentType ===
+                          "READY_STOCK"
+                          ? ` (${item.stockQuantity} available)`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
-              <Link
-                href="/shop"
-                className="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-brand-cocoa px-8 text-sm font-medium text-white"
+              <label className="mt-8 block text-sm font-medium">
+                Quantity
+                <input
+                  type="number"
+                  min={1}
+                  max={maxQuantity}
+                  value={quantity}
+                  onChange={(event) => {
+                    const parsed =
+                      Number(event.target.value);
+
+                    setQuantity(
+                      Number.isFinite(parsed)
+                        ? Math.max(
+                            1,
+                            Math.min(
+                              maxQuantity,
+                              Math.trunc(parsed),
+                            ),
+                          )
+                        : 1,
+                    );
+                  }}
+                  className="mt-3 block min-h-12 w-28 rounded-2xl border border-[#EADFD8] px-4"
+                />
+              </label>
+
+              <button
+                type="button"
+                disabled={busy || soldOut}
+                onClick={() => void addToCart()}
+                className="mt-8 flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-brand-cocoa px-6 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Explore more creations
-              </Link>
+                <ShoppingBag size={19} />
+                {soldOut
+                  ? "Currently unavailable"
+                  : busy
+                    ? "Please wait..."
+                    : "Add to Cart"}
+              </button>
+
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void saveToWishlist()}
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-brand-cocoa text-sm font-medium disabled:opacity-50"
+              >
+                <Heart size={18} />
+                Save to Wishlist
+              </button>
+
+              {message && (
+                <p
+                  role="status"
+                  className="mt-5 text-sm text-[#6B5A50]"
+                >
+                  {message}
+                </p>
+              )}
             </div>
           </div>
         )}
