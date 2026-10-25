@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart, ShoppingBag } from "lucide-react";
+import ProductReviews from "@/components/reviews/ProductReviews";
 
 import { apiJson, apiRequest, ApiError } from "@/lib/api";
 
@@ -362,6 +363,7 @@ export default function ProductDetail({
             </div>
           </div>
         )}
+        {!loading && product && <ProductReviews slug={slug} />}
       </div>
     </section>
   );

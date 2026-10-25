@@ -114,6 +114,9 @@ export default function OrderDetailView({ orderId }: { orderId: string }) {
                         <div><p className="font-medium">{item.productName}</p>
                           {item.variantName && <p className="mt-1 text-[#6B5A50]">{item.variantName}</p>}
                           <p className="mt-1 text-[#6B5A50]">Quantity: {item.quantity}</p>
+                          {order.status === "DELIVERED" && item.itemType === "PRODUCT" && (
+                            <Link href={`/reviews/new?orderItemId=${encodeURIComponent(item.id)}`} className="mt-3 inline-block rounded-full border border-brand-cocoa px-4 py-2 text-xs font-medium text-brand-cocoa hover:bg-brand-cream">Write a review</Link>
+                          )}
                         </div>
                         <span>{money(item.subtotal)}</span>
                       </div>
