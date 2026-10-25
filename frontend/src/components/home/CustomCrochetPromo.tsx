@@ -29,7 +29,7 @@ export default function CustomCrochetPromo() {
               </p>
 
               <p className="mt-4 text-sm leading-7 text-[#6B5A50]">
-                Upload your inspiration and tell us what you&apos;d love to
+                Describe your inspiration and tell us what you&apos;d love to
                 create.
               </p>
             </div>
@@ -45,7 +45,7 @@ export default function CustomCrochetPromo() {
             </h2>
 
             <p className="mt-6 max-w-xl text-sm leading-7 text-[#6B5A50] sm:text-base">
-              Have something unique in mind? Share your inspiration images,
+              Have something unique in mind? Describe the inspiration,
               preferred colours, size, occasion and delivery date. Our team
               will review your request and send you a personalised quotation.
             </p>
