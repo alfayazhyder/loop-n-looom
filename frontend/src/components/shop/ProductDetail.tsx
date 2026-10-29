@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Heart, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
+import WishlistButton from "@/components/wishlist/WishlistButton";
 import ProductReviews from "@/components/reviews/ProductReviews";
 
-import { apiJson, apiRequest, ApiError } from "@/lib/api";
+import { apiJson, apiRequest } from "@/lib/api";
 
 import {
   normalizeProduct,
@@ -117,46 +118,6 @@ export default function ProductDetail({
           ? error.message
           : "Could not add product to cart.",
       );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveToWishlist() {
-    if (!product || busy) return;
-
-    setBusy(true);
-    setMessage("");
-
-    try {
-      await apiJson(
-        `/api/customer/wishlist/${encodeURIComponent(product.id)}`,
-        "POST",
-      );
-
-      setMessage("Added to your wishlist.");
-    } catch (error) {
-      if (
-        error instanceof ApiError &&
-        error.status === 401
-      ) {
-        setMessage(
-          "Please sign in to save this product.",
-        );
-      } else if (
-        error instanceof ApiError &&
-        error.status === 409
-      ) {
-        setMessage(
-          "This product is already in your wishlist.",
-        );
-      } else {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to save product.",
-        );
-      }
     } finally {
       setBusy(false);
     }
@@ -342,15 +303,7 @@ export default function ProductDetail({
                     : "Add to Cart"}
               </button>
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void saveToWishlist()}
-                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-brand-cocoa text-sm font-medium disabled:opacity-50"
-              >
-                <Heart size={18} />
-                Save to Wishlist
-              </button>
+              <WishlistButton productId={product.id} name={product.name} display="detail" disabled={busy} />
 
               {message && (
                 <p

@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
 
 import Badge from "@/components/ui/Badge";
-import { apiJson, ApiError } from "@/lib/api";
+import WishlistButton from "@/components/wishlist/WishlistButton";
 import { safeImageUrl } from "@/lib/catalog";
 
 interface ProductCardProps {
@@ -34,46 +32,7 @@ export default function ProductCard({
   badgeVariant = "blush",
   availability = "Made to Order",
 }: ProductCardProps) {
-  const [saved, setSaved] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
-
   const image = safeImageUrl(imageUrl ?? "");
-
-  async function addToWishlist() {
-    if (!productId || busy) return;
-
-    setBusy(true);
-    setNotice("");
-
-    try {
-      await apiJson(
-        `/api/customer/wishlist/${encodeURIComponent(productId)}`,
-        "POST",
-      );
-
-      setSaved(true);
-      setNotice("Added to your wishlist.");
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        setSaved(true);
-        setNotice("Already in your wishlist.");
-      } else if (
-        error instanceof ApiError &&
-        error.status === 401
-      ) {
-        setNotice("Please sign in to save your favourites.");
-      } else {
-        setNotice(
-          error instanceof Error
-            ? error.message
-            : "Could not update wishlist.",
-        );
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <article className="group">
@@ -109,26 +68,8 @@ export default function ProductCard({
           </div>
         )}
 
-        {productId && (
-          <button
-            type="button"
-            onClick={() => void addToWishlist()}
-            disabled={busy}
-            aria-label={
-              saved
-                ? `${name} saved to wishlist`
-                : `Add ${name} to wishlist`
-            }
-            aria-pressed={saved}
-            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand-cocoa shadow-sm transition-transform hover:scale-105 disabled:opacity-50"
-          >
-            <Heart
-              size={18}
-              fill={saved ? "currentColor" : "none"}
-              strokeWidth={1.8}
-            />
-          </button>
-        )}
+        {productId && <WishlistButton productId={productId} name={name} display="card" />}
+
       </div>
 
       <div className="pt-4">
@@ -146,14 +87,7 @@ export default function ProductCard({
           AED {price.toFixed(2)}
         </p>
 
-        {notice && (
-          <p
-            role="status"
-            className="mt-2 text-xs leading-5 text-[#6B5A50]"
-          >
-            {notice}
-          </p>
-        )}
+
       </div>
     </article>
   );

@@ -4,6 +4,7 @@ import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import CustomerHeader from "@/components/layout/CustomerHeader";
 import Footer from "@/components/layout/Footer";
 import MobileNavigation from "@/components/layout/MobileNavigation";
+import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
 
 export default function StoreLayout({
   children,
@@ -11,7 +12,7 @@ export default function StoreLayout({
   children: ReactNode;
 }) {
   return (
-    <>
+    <WishlistProvider>
       <AnnouncementBar />
       <CustomerHeader />
 
@@ -21,6 +22,6 @@ export default function StoreLayout({
 
       <Footer />
       <MobileNavigation />
-    </>
+    </WishlistProvider>
   );
 }
