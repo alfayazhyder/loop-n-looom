@@ -16,6 +16,7 @@ import {
 
 interface Props {
   category?: string;
+  occasion?: string;
 }
 
 interface CatalogResponse {
@@ -30,6 +31,7 @@ interface CatalogResponse {
 
 export default function CatalogGrid({
   category,
+  occasion,
 }: Props) {
   const [products, setProducts] =
     useState<CatalogProduct[]>([]);
@@ -61,6 +63,10 @@ export default function CatalogGrid({
 
       if (category) {
         params.set("category", category);
+      }
+
+      if (occasion) {
+        params.set("occasion", occasion);
       }
 
       if (search) {
@@ -117,7 +123,7 @@ export default function CatalogGrid({
     void load();
 
     return () => controller.abort();
-  }, [category, search, availability, sort, page]);
+  }, [category, occasion, search, availability, sort, page]);
 
   function resetFilters() {
     setProducts([]);
@@ -130,8 +136,10 @@ export default function CatalogGrid({
     setSearch(searchInput.trim().slice(0, 120));
   }
 
-  const heading = category
-    ? category
+  const heading = occasion
+    ? `Gifts for ${occasion.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}`
+    : category
+      ? category
         .split("-")
         .map(
           (word) =>
