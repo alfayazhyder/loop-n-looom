@@ -47,7 +47,7 @@ const nav = [
   { label: "Orders", href: "#orders", icon: ShoppingBag },
   { label: "Custom requests", href: "#custom-requests", icon: Sparkles },
   { label: "Review moderation", href: "#reviews", icon: Star },
-  { label: "Products", href: "#products", icon: Package },
+  { label: "Products", href: "/admin/products", icon: Package },
   { label: "Customers", href: "#customers", icon: UsersRound },
   { label: "Support", href: "#support", icon: MessageCircle },
 ];
