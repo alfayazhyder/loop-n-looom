@@ -60,6 +60,7 @@ import {
   listAdminVariants,
   updateAdminVariant,
 } from "../controllers/adminVariant.controller";
+import adminProductExtrasRouter from "./adminProductExtras.routes";
 import { requireAdmin } from "../middleware/admin.middleware";
 import { requireAuth } from "../middleware/auth.middleware";
 
@@ -90,6 +91,8 @@ adminRouter.use(
     next();
   },
 );
+
+adminRouter.use(adminProductExtrasRouter);
 
 adminRouter.get(
   "/access-check",
