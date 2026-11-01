@@ -61,6 +61,7 @@ import {
   updateAdminVariant,
 } from "../controllers/adminVariant.controller";
 import adminProductExtrasRouter from "./adminProductExtras.routes";
+import adminNotificationsRouter from "./adminNotifications.routes";
 import { requireAdmin } from "../middleware/admin.middleware";
 import { requireAuth } from "../middleware/auth.middleware";
 
@@ -93,6 +94,7 @@ adminRouter.use(
 );
 
 adminRouter.use(adminProductExtrasRouter);
+adminRouter.use(adminNotificationsRouter);
 
 adminRouter.get(
   "/access-check",
