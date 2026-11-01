@@ -44,12 +44,13 @@ type Gate = "checking" | "ready" | "sign-in" | "forbidden" | "error";
 const nav = [
   { label: "Overview", href: "#overview", icon: LayoutDashboard },
   { label: "Analytics", href: "#analytics", icon: ChartNoAxesColumnIncreasing },
+  { label: "Notifications", href: "/admin/notifications", icon: BellRing },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Custom requests", href: "/admin/custom-requests", icon: Sparkles },
-  { label: "Review moderation", href: "#reviews", icon: Star },
+  { label: "Review moderation", href: "/admin/reviews", icon: Star },
   { label: "Products", href: "/admin/products", icon: Package },
-  { label: "Customers", href: "#customers", icon: UsersRound },
-  { label: "Support", href: "#support", icon: MessageCircle },
+  { label: "Customers", href: "/admin/customers", icon: UsersRound },
+  { label: "Support", href: "/admin/support", icon: MessageCircle },
 ];
 
 const card = "rounded-[1.6rem] border border-[#EADFD8] bg-white shadow-[0_5px_25px_rgba(74,59,50,0.035)]";
