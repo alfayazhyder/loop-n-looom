@@ -43,7 +43,10 @@ type Gate = "checking" | "ready" | "sign-in" | "forbidden" | "error";
 
 const nav = [
   { label: "Overview", href: "#overview", icon: LayoutDashboard },
-  { label: "Analytics", href: "#analytics", icon: ChartNoAxesColumnIncreasing },
+  { label: "Analytics", href: "/admin/analytics", icon: ChartNoAxesColumnIncreasing },
+  { label: "Coupons", href: "/admin/coupons", icon: Tag },
+  { label: "Marketing", href: "/admin/marketing", icon: BellRing },
+  { label: "Reports", href: "/admin/reports", icon: ChartNoAxesColumnIncreasing },
   { label: "Notifications", href: "/admin/notifications", icon: BellRing },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Custom requests", href: "/admin/custom-requests", icon: Sparkles },
