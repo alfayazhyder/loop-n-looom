@@ -61,6 +61,7 @@ export type AdminOrderDetail = {
     fulfillmentType: string; productionMinDays: number | null;
     productionMaxDays: number | null; customization: unknown;
   }>;
+  qcReview: { status: "PENDING" | "APPROVED" | "CHANGES_REQUESTED"; reviewedAt: string | null; note: string | null; photoFingerprint: string | null };
   statusHistory: Array<{ id: string; status: string; note: string | null; createdAt: string;
     updatedBy?: { firstName: string | null; lastName: string | null; email: string } | null;
   }>;

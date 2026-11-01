@@ -62,7 +62,6 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
   const [transitionNote, setTransitionNote] = useState("");
   const [qcUrl, setQcUrl] = useState("");
   const [qcCaption, setQcCaption] = useState("");
-  const [ackManuallyConfirmed, setAckManuallyConfirmed] = useState(false);
   const [courier, setCourier] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
@@ -123,7 +122,6 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
       await action();
       const detail = await getOrder(orderId);
       setOrder(detail); setNotice(success); setTransitionNote("");
-      setAckManuallyConfirmed(false);
       setCourier(detail.shipment?.courier ?? "");
       setTrackingNumber(detail.shipment?.trackingNumber ?? "");
       setTrackingUrl(detail.shipment?.trackingUrl ?? "");
@@ -142,8 +140,8 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
     if (!order) return;
     const next = NEXT_ORDER_STATUS[order.status];
     if (!next) return;
-    if (next === "READY_FOR_PACKING" && !ackManuallyConfirmed) {
-      setIssue("Before packing, confirm the customer has reviewed the quality-check photos. This manual confirmation is not yet independently recorded in the backend.");
+    if (next === "READY_FOR_PACKING" && order.qcReview.status !== "APPROVED") {
+      setIssue("Packing is blocked until the customer approves the latest QC photos in their own account.");
       return;
     }
     if (!window.confirm(`Advance ${order.orderNumber} from ${statusLabel(order.status)} to ${statusLabel(next)}? This updates the customer-visible timeline and queues notifications.`)) return;
@@ -167,7 +165,7 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
     if (!order) return;
     if (!isExternalHttps(qcUrl.trim())) { setIssue("Use an HTTPS image URL hosted on an approved storage service."); return; }
     if (order.status !== "QUALITY_CHECK") { setIssue("Quality-check photos can only be added during QUALITY_CHECK."); return; }
-    void mutate(() => addQcPhoto(order.id, qcUrl.trim(), qcCaption), "Quality-check photo reference added. Customer can view it in their order details; automatic customer approval is not yet implemented.");
+    void mutate(() => addQcPhoto(order.id, qcUrl.trim(), qcCaption), "Quality-check photo reference added; any previous customer approval was invalidated. Ask the customer to review the updated images.");
     setQcUrl(""); setQcCaption("");
   }
   async function logout() {
@@ -254,10 +252,12 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
               {NEXT_ORDER_STATUS[order.status] ? <div className="mt-6 rounded-2xl border border-[#EADFD8] bg-[#FDF8F3] p-5"><h3 className="font-serif text-xl">Next production stage</h3><p className="mt-2 text-sm text-[#6B5A50]">{statusLabel(order.status)} → <strong>{statusLabel(NEXT_ORDER_STATUS[order.status] ?? "")}</strong></p>
                 <label className="mt-4 block text-xs font-semibold text-[#6B5A50]">Optional status note<textarea className={`${input} min-h-20`} maxLength={1000} value={transitionNote} onChange={event => setTransitionNote(event.target.value)} placeholder="Work completed, handover details…" /></label>
                 {order.status === "QUALITY_CHECK" && <div className="mt-4 space-y-3 rounded-xl border border-[#E6CDAE] bg-[#FFFBF2] p-4 text-sm text-[#765A38]">
-                  <p><strong>Customer photo confirmation:</strong> Your original specification requires confirmation before packing. The current backend only enforces that a QC photo exists; it does not record the customer&apos;s approval. This step does not add that missing approval workflow.</p>
-                  <label className="flex cursor-pointer items-start gap-3"><input type="checkbox" className="mt-1" checked={ackManuallyConfirmed} onChange={e => setAckManuallyConfirmed(e.target.checked)} />I have personally confirmed with the customer outside the app. This checkbox is not stored as verified approval.</label>
+                  <p><strong>Customer QC review:</strong> {statusLabel(order.qcReview.status)}. Only customer approval captured in their authenticated order page allows packing. The backend verifies the precise photo set again when advancing.</p>
+                  {order.qcReview.reviewedAt && <p>Reviewed {uaeDate(order.qcReview.reviewedAt)}</p>}
+                  {order.qcReview.note && <p className="whitespace-pre-wrap">Customer request: {order.qcReview.note}</p>}
+                  {order.qcReview.status !== "APPROVED" && <p>Ask the customer to open their order details and review the current photos. Manual confirmation is not accepted.</p>}
                 </div>}
-                <button type="button" className={`${primary} mt-5`} disabled={busy || (order.status === "QUALITY_CHECK" && (!ackManuallyConfirmed || !order.media.some(media => media.type === "QUALITY_CHECK_PHOTO")))} onClick={moveToNext}><PackageCheck size={17} /> Advance to {statusLabel(NEXT_ORDER_STATUS[order.status] ?? "")}</button>
+                <button type="button" className={`${primary} mt-5`} disabled={busy || (order.status === "QUALITY_CHECK" && (order.qcReview.status !== "APPROVED" || !order.media.some(media => media.type === "QUALITY_CHECK_PHOTO")))} onClick={moveToNext}><PackageCheck size={17} /> Advance to {statusLabel(NEXT_ORDER_STATUS[order.status] ?? "")}</button>
                 {order.status === "QUALITY_CHECK" && !order.media.some(media => media.type === "QUALITY_CHECK_PHOTO") && <p className="mt-3 text-xs text-[#916A47]">Add at least one QC photo before proceeding.</p>}
               </div> : <p className="mt-5 text-sm text-[#826F63]">No additional administrator fulfillment transition is available for this status. Payments and refunds must be handled by the authorized payment workflow.</p>}
             </Block>
@@ -291,7 +291,7 @@ export default function AdminOrderManager({ orderId }: { orderId?: string }) {
               {order.couponCode && <Row label="Coupon" value={order.couponCode} />}
               <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-[#806F63]">Payment records · read only</p>{order.payments.length ? order.payments.map(payment => <p className="mt-3 text-xs text-[#6B5A50]" key={payment.id}>{statusLabel(payment.method)} · {statusLabel(payment.status)} · {aed(payment.amount)}</p>) : <p className="mt-3 text-sm text-[#8A7B72]">No payment records available.</p>}
             </Block>
-            <div className="rounded-2xl border border-[#EADFD8] bg-[#F6EEE5] p-5 text-xs leading-6 text-[#6B5A50]"><strong className="text-[#4A3B32]">Outstanding specification requirements:</strong> automatic customer QC approval, secure binary QC uploads, printable PDF invoices and packing slips, and full 10-stage tracking details are not supplied by the existing admin API. No fake approval, payment or PDF action is shown.</div>
+            <div className="rounded-2xl border border-[#EADFD8] bg-[#F6EEE5] p-5 text-xs leading-6 text-[#6B5A50]"><strong className="text-[#4A3B32]">Outstanding specification requirements:</strong> secure binary QC image uploads, delivery-provider notification integration, printable PDF invoices and packing slips, and final ten-stage tracking details remain separate work. Customer approvals are recorded by the authenticated backend only.</div>
           </div>
         </div>
       </>}
