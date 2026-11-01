@@ -44,7 +44,7 @@ type Gate = "checking" | "ready" | "sign-in" | "forbidden" | "error";
 const nav = [
   { label: "Overview", href: "#overview", icon: LayoutDashboard },
   { label: "Analytics", href: "#analytics", icon: ChartNoAxesColumnIncreasing },
-  { label: "Orders", href: "#orders", icon: ShoppingBag },
+  { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Custom requests", href: "/admin/custom-requests", icon: Sparkles },
   { label: "Review moderation", href: "#reviews", icon: Star },
   { label: "Products", href: "/admin/products", icon: Package },
