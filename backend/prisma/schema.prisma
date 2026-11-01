@@ -189,6 +189,12 @@ enum OrderMediaType {
   OTHER
 }
 
+enum QcReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
 enum PaymentStatus {
   PENDING
   AUTHORIZED
@@ -269,6 +275,7 @@ model User {
   customQuotesCreated          CustomQuote[]
 
   orderStatusUpdates           OrderStatusHistory[]   @relation("OrderStatusUpdatedBy")
+  qcReviewsSubmitted          OrderQcReview[]
   inventoryMovements           InventoryMovement[]
 
   supportConversations         SupportConversation[]  @relation("SupportConversationCustomer")
@@ -901,6 +908,10 @@ model Order {
   customQuoteId            String?     @unique
 
   status                   OrderStatus @default(PENDING_PAYMENT)
+  qcStatus                 QcReviewStatus @default(PENDING)
+  qcReviewedAt             DateTime?
+  qcReviewNote             String? @db.VarChar(1000)
+  qcPhotoFingerprint       String? @db.VarChar(64)
   currency                 String      @default("AED")
 
   customerName             String
@@ -944,6 +955,7 @@ model Order {
 
   items                   OrderItem[]
   statusHistory           OrderStatusHistory[]
+  qcReviews               OrderQcReview[]
   media                   OrderMedia[]
   payments                Payment[]
   shipment                Shipment?
@@ -1006,6 +1018,22 @@ model OrderStatusHistory {
   @@index([status])
   @@index([createdAt])
   @@map("order_status_history")
+}
+
+model OrderQcReview {
+  id               String         @id @default(uuid())
+  orderId          String
+  userId           String?
+  decision         QcReviewStatus
+  note             String?        @db.VarChar(1000)
+  photoFingerprint String         @db.VarChar(64)
+  createdAt        DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_qc_reviews")
 }
 
 model OrderMedia {

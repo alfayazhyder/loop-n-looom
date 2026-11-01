@@ -549,6 +549,12 @@ function formatCustomerOrderDetail(
     giftMessage:
       order.giftMessage,
 
+    qcReview: {
+      status: order.qcStatus,
+      reviewedAt: order.qcReviewedAt,
+      note: order.qcReviewNote,
+    },
+
     placedAt:
       order.placedAt,
 

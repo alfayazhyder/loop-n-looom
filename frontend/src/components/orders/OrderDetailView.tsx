@@ -65,6 +65,37 @@ export default function OrderDetailView({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(true);
   const [signedOut, setSignedOut] = useState(false);
   const [error, setError] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewIssue, setReviewIssue] = useState("");
+  const [reviewNotice, setReviewNotice] = useState("");
+
+  async function submitQcReview(decision: "APPROVED" | "CHANGES_REQUESTED") {
+    if (!order || reviewBusy || order.status !== "QUALITY_CHECK") return;
+    if (decision === "CHANGES_REQUESTED" && reviewNote.trim().length < 10) {
+      setReviewIssue("Describe the changes requested in at least 10 characters.");
+      return;
+    }
+    if (!window.confirm(decision === "APPROVED"
+      ? "Confirm you have reviewed ALL current QC photos and approve packing this order?"
+      : "Send these changes to the studio? Packing will remain blocked.")) return;
+    setReviewBusy(true); setReviewIssue(""); setReviewNotice("");
+    try {
+      await authenticatedRequest(`/api/customer/orders/${encodeURIComponent(order.id)}/qc-review`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision, ...(decision === "CHANGES_REQUESTED" ? { note: reviewNote.trim() } : {}) }),
+      });
+      const latest = await authenticatedRequest<OrderDetail>(`/api/customer/orders/${encodeURIComponent(order.id)}`);
+      setOrder(latest);
+      setReviewNote("");
+      setReviewNotice(decision === "APPROVED"
+        ? "Your approval is recorded. The studio can now prepare packing."
+        : "Your change request was recorded. The studio must upload revised photos before you can approve.");
+    } catch (cause) {
+      if (isAuthenticationError(cause)) setSignedOut(true);
+      setReviewIssue(cause instanceof Error ? cause.message : "Unable to record your review.");
+    } finally { setReviewBusy(false); }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -130,6 +161,27 @@ export default function OrderDetailView({ orderId }: { orderId: string }) {
                 <section className={panel}>
                   <h2 className="font-serif text-2xl">Quality-check photographs</h2>
                   <QualityCheckPhotos media={order.media} />
+                  {order.status === "QUALITY_CHECK" && (
+                    <div className="mt-6 rounded-2xl border border-[#E4D5CB] bg-[#FCF9F5] p-5">
+                      <h3 className="font-serif text-xl">Your approval before packing</h3>
+                      <p className="mt-2 text-sm leading-6 text-[#6B5A50]">Review every quality-check photograph. Only approval from your signed-in account unlocks packing. If something needs adjusting, let our studio know.</p>
+                      {order.qcReview.status === "PENDING" && order.media.length > 0 && <>
+                        <label className="mt-5 block text-xs font-semibold text-[#6B5A50]">Request changes (describe what needs attention)
+                          <textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#E4D5CB] bg-white p-3 text-sm" maxLength={1000} value={reviewNote} onChange={event => setReviewNote(event.target.value)} placeholder="Please change the ribbon colour…" />
+                        </label>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button type="button" disabled={reviewBusy} onClick={() => void submitQcReview("APPROVED")} className="rounded-full bg-brand-cocoa px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">Approve photos &amp; packing</button>
+                          <button type="button" disabled={reviewBusy || reviewNote.trim().length < 10} onClick={() => void submitQcReview("CHANGES_REQUESTED")} className="rounded-full border border-[#BCA69B] px-6 py-3 text-sm font-semibold disabled:opacity-50">Request changes</button>
+                        </div>
+                      </>}
+                      {order.qcReview.status === "PENDING" && order.media.length === 0 && <p className="mt-4 text-sm text-[#8A7B72]">Waiting for the studio to upload your quality-check photos.</p>}
+                      {order.qcReview.status === "APPROVED" && <p role="status" className="mt-4 text-sm font-semibold text-[#557A61]">Approved {dateLabel(order.qcReview.reviewedAt)}. Your studio can proceed to packing.</p>}
+                      {order.qcReview.status === "CHANGES_REQUESTED" && <div className="mt-4 text-sm text-[#82583F]"><p className="font-semibold">Changes requested {dateLabel(order.qcReview.reviewedAt)}. Awaiting revised photos.</p>{order.qcReview.note && <p className="mt-2 whitespace-pre-wrap">{order.qcReview.note}</p>}</div>}
+                      {reviewIssue && <p role="alert" className="mt-4 text-sm text-red-700">{reviewIssue}</p>}
+                      {reviewNotice && <p role="status" className="mt-4 text-sm text-[#557A61]">{reviewNotice}</p>}
+                    </div>
+                  )}
+                  {order.status !== "QUALITY_CHECK" && order.qcReview.status === "APPROVED" && <p className="mt-4 text-xs text-[#557A61]">Quality-check approval recorded {dateLabel(order.qcReview.reviewedAt)}.</p>}
                 </section>
               </div>
               <div className="space-y-6">

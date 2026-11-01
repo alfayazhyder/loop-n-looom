@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import {
   rateLimit,
 } from "express-rate-limit";
@@ -8,6 +8,8 @@ import {
   listOrders,
   trackOrder,
 } from "../controllers/customerOrder.controller";
+
+import { reviewCustomerQc } from "../controllers/customerQcReview.controller";
 
 import {
   optionalAuth,
@@ -43,6 +45,21 @@ customerOrderRouter.get(
   "/",
   requireAuth,
   listOrders,
+);
+
+const qcReviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 12,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Too many quality review attempts." },
+});
+
+customerOrderRouter.post(
+  "/:orderId/qc-review",
+  qcReviewLimiter,
+  requireAuth,
+  reviewCustomerQc,
 );
 
 customerOrderRouter.get(

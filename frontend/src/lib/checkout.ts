@@ -138,6 +138,7 @@ export interface OrderDetail extends Omit<OrderListItem, "latestPayment"> {
   payments: PaymentSummary[];
   tracking: Timeline;
   media: OrderMedia[];
+  qcReview: { status: "PENDING" | "APPROVED" | "CHANGES_REQUESTED"; reviewedAt: string | null; note: string | null };
   couponCode: string | null;
   giftWrapSelected: boolean;
   giftMessage: string | null;

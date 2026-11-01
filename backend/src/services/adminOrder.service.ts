@@ -1,8 +1,9 @@
-﻿import type {
+import type {
   Prisma,
 } from "../generated/prisma/client";
 
 import { prisma } from "../lib/prisma";
+import { qcPhotoFingerprint } from "./customerQcReview.service";
 
 import type {
   AddAdminOrderQcPhotosInput,
@@ -382,13 +383,20 @@ async function applyOrderStatusTransition(
         },
       );
 
-    if (
-      qcPhotoCount <
-      1
-    ) {
+    if (qcPhotoCount < 1) {
       throw new AdminOrderError(
-        "At least one quality-check photo is required before the order can move to ready for packing.",
-        409,
+        "At least one quality-check photo is required before packing.", 409,
+      );
+    }
+    const signedOff = await tx.order.findUnique({
+      where: { id: order.id },
+      select: { qcStatus: true, qcPhotoFingerprint: true },
+    });
+    const currentFingerprint = await qcPhotoFingerprint(tx, order.id);
+    if (!signedOff || signedOff.qcStatus !== "APPROVED" || !currentFingerprint ||
+        signedOff.qcPhotoFingerprint !== currentFingerprint) {
+      throw new AdminOrderError(
+        "Customer must approve the current quality-check photos in their account before packing.", 409,
       );
     }
   }
@@ -802,6 +810,13 @@ export async function getAdminOrderDetail(
     status:
       order.status,
 
+    qcReview: {
+      status: order.qcStatus,
+      reviewedAt: order.qcReviewedAt,
+      note: order.qcReviewNote,
+      photoFingerprint: order.qcPhotoFingerprint,
+    },
+
     currency:
       order.currency,
 
@@ -1012,6 +1027,7 @@ export async function updateAdminOrderStatus(
         input.note,
       );
     },
+    { isolationLevel: "Serializable" },
   );
 
   return getAdminOrderDetail(
@@ -1023,149 +1039,55 @@ export async function addAdminOrderQcPhotos(
   orderId: string,
   input: AddAdminOrderQcPhotosInput,
 ) {
-  const order =
-    await prisma.order.findUnique(
-      {
-        where: {
-          id:
-            orderId,
+  return prisma.$transaction(async (tx) => {
+    // Write-lock order row and reset prior signoff in the same transaction as photo edits.
+    const updated = await tx.order.updateMany({
+      where: { id: orderId, status: "QUALITY_CHECK" },
+      data: { qcStatus: "PENDING", qcReviewedAt: null, qcReviewNote: null, qcPhotoFingerprint: null },
+    });
+    if (updated.count !== 1) {
+      const exists = await tx.order.findUnique({ where: { id: orderId }, select: { id: true } });
+      throw new AdminOrderError(
+        exists ? "QC photos can only be added during quality check." : "Order not found.",
+        exists ? 409 : 404,
+      );
+    }
+    const photos = [];
+    for (const photo of input.photos) {
+      photos.push(await tx.orderMedia.create({
+        data: {
+          orderId,
+          type: "QUALITY_CHECK_PHOTO",
+          url: photo.url,
+          publicId: photo.publicId ?? null,
+          caption: photo.caption ?? null,
         },
-
-        select: {
-          id: true,
-          status: true,
-        },
-      },
-    );
-
-  if (!order) {
-    throw new AdminOrderError(
-      "Order not found.",
-      404,
-    );
-  }
-
-  if (
-    order.status !==
-    "QUALITY_CHECK"
-  ) {
-    throw new AdminOrderError(
-      "Quality-check photos can only be added while the order is in QUALITY_CHECK.",
-      409,
-    );
-  }
-
-  const created =
-    await prisma.$transaction(
-      async (tx) => {
-        const photos = [];
-
-        for (
-          const photo of
-          input.photos
-        ) {
-          const media =
-            await tx.orderMedia.create(
-              {
-                data: {
-                  orderId,
-
-                  type:
-                    "QUALITY_CHECK_PHOTO",
-
-                  url:
-                    photo.url,
-
-                  publicId:
-                    photo.publicId ??
-                    null,
-
-                  caption:
-                    photo.caption ??
-                    null,
-                },
-              },
-            );
-
-          photos.push(
-            media,
-          );
-        }
-
-        return photos;
-      },
-    );
-
-  return created;
+      }));
+    }
+    return photos;
+  }, { isolationLevel: "Serializable" });
 }
 
-export async function deleteAdminOrderQcPhoto(
-  orderId: string,
-  mediaId: string,
-) {
-  const order =
-    await prisma.order.findUnique(
-      {
-        where: {
-          id:
-            orderId,
-        },
-
-        select: {
-          status: true,
-        },
-      },
-    );
-
-  if (!order) {
-    throw new AdminOrderError(
-      "Order not found.",
-      404,
-    );
-  }
-
-  if (
-    order.status !==
-    "QUALITY_CHECK"
-  ) {
-    throw new AdminOrderError(
-      "Quality-check photos can only be removed while the order is in QUALITY_CHECK.",
-      409,
-    );
-  }
-
-  const media =
-    await prisma.orderMedia.findFirst(
-      {
-        where: {
-          id:
-            mediaId,
-
-          orderId,
-
-          type:
-            "QUALITY_CHECK_PHOTO",
-        },
-      },
-    );
-
-  if (!media) {
-    throw new AdminOrderError(
-      "Quality-check photo not found.",
-      404,
-    );
-  }
-
-  await prisma.orderMedia.delete(
-    {
-      where: {
-        id:
-          mediaId,
-      },
-    },
-  );
-
-  return media;
+export async function deleteAdminOrderQcPhoto(orderId: string, mediaId: string) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.order.updateMany({
+      where: { id: orderId, status: "QUALITY_CHECK" },
+      data: { qcStatus: "PENDING", qcReviewedAt: null, qcReviewNote: null, qcPhotoFingerprint: null },
+    });
+    if (updated.count !== 1) {
+      const exists = await tx.order.findUnique({ where: { id: orderId }, select: { id: true } });
+      throw new AdminOrderError(
+        exists ? "QC photos can only be removed during quality check." : "Order not found.",
+        exists ? 409 : 404,
+      );
+    }
+    const photo = await tx.orderMedia.findFirst({
+      where: { id: mediaId, orderId, type: "QUALITY_CHECK_PHOTO" },
+    });
+    if (!photo) throw new AdminOrderError("Quality-check photo not found.", 404);
+    await tx.orderMedia.delete({ where: { id: photo.id } });
+    return photo;
+  }, { isolationLevel: "Serializable" });
 }
 
 export async function updateAdminOrderShipment(
